@@ -1,0 +1,6 @@
+(library
+ (name aoc_2024)
+ (public_name aoc_2024)
+ (libraries base parallel parallel_scheduler_work_stealing portable stdio)
+ (preprocess
+  (pps ppx_jane)))
