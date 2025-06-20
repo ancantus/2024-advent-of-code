@@ -1,0 +1,13 @@
+(executables
+ (modes byte exe)
+ (names aoc_1)
+ (libraries
+  core_unix.command_unix
+  core
+  core_unix
+  parallel
+  parallel.scheduler.work_stealing
+  portable
+  core_unix.time_stamp_counter)
+ (preprocess
+  (pps ppx_jane)))
