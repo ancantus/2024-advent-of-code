@@ -21,11 +21,28 @@ let load_id_file file =
       in
       (Array.of_list ids_1, Array.of_list ids_2) )
 
-let find_distance lhs rhs ~verbose =
+let find_distance (local_ lhs) (local_ rhs) ~(local_ verbose) =
   if verbose then
     printf "(%d: %d) -> (%d: %d) = %d\n" lhs.id lhs.index rhs.id rhs.index
       (Int.abs (lhs.id - rhs.id)) ;
   Int.abs (lhs.id - rhs.id)
+
+let similarity_score ~table ~(local_ verbose) id =
+  let match_count =
+    Array.fold_until ~init:0
+      ~f:(fun acc a ->
+        match a.id with
+        | x when x < id ->
+            Continue acc
+        | x when phys_equal x id ->
+            Continue (acc + 1)
+        | _ ->
+            Stop acc )
+      ~finish:(fun acc -> acc)
+      table
+  in
+  if verbose then printf "%d * %d = %d\n" id match_count (id * match_count) ;
+  id * match_count
 
 let command =
   Command.basic ~summary:"Location Id Un-Muxer (AOC-2024-1)"
@@ -40,6 +57,11 @@ let command =
           ~f:(fun lhs rhs -> find_distance ~verbose lhs rhs)
           ids_1 ids_2
         |> Array.fold ~init:0 ~f:(fun acc a -> acc + a)
-        |> printf "total distance: %d\n"]
+        |> printf "total distance: %d\n" ;
+        let score_sim =
+          Memo.general (fun id -> similarity_score ~verbose ~table:ids_2 id)
+        in
+        Array.fold ~init:0 ~f:(fun acc a -> acc + score_sim a.id) ids_1
+        |> printf "similarity score: %d\n"]
 
 let () = Command_unix.run command
