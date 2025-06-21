@@ -1,5 +1,5 @@
 (executables
- (modes byte exe)
+ (modes exe)
  (names aoc_1)
  (libraries
   core_unix.command_unix
