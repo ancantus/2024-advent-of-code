@@ -145,46 +145,95 @@ let scan_up_diag ~query word_search =
     (num_lines - kernel_length + 1)
     ~f:scanner
 
+let scan_cross ~query word_search =
+  let kernel_length = String.length query in
+  let rev_query = String.rev query in
+  let line_length, num_lines = word_search.shape in
+  let check_cross start =
+    let get_up_diag rows =
+      let cols = kernel_length - rows - 1 in
+      String.get word_search.data (start + cols + (rows * line_length))
+    in
+    let get_down_diag i =
+      String.get word_search.data (start + i + (i * line_length))
+    in
+    let find_match ~get_char q =
+      String.findi ~f:(fun i c -> get_char i |> Char.equal__local c |> not) q
+      |> Option.is_none
+    in
+    let up_match_found =
+      find_match ~get_char:get_up_diag query
+      || find_match ~get_char:get_up_diag rev_query
+    in
+    let down_match_found =
+      find_match ~get_char:get_down_diag query
+      || find_match ~get_char:get_down_diag rev_query
+    in
+    up_match_found && down_match_found
+  in
+  let scanner = check_wordsearch ~ws:word_search ~f:check_cross in
+  scan_region
+    (line_length - kernel_length + 1)
+    (num_lines - kernel_length + 1)
+    ~f:scanner
+
+let xmas_match ?(verbose = false) word_search =
+  let horiz_count, horiz_matches = scan_horiz ~query:"XMAS" word_search in
+  let vert_count, vert_matches = scan_vert ~query:"XMAS" word_search in
+  let diag_up_count, up_diag_matches = scan_up_diag ~query:"XMAS" word_search in
+  let diag_down_count, down_diag_matches =
+    scan_down_diag ~query:"XMAS" word_search
+  in
+  if verbose then (
+    let print_matches matches =
+      List.iter ~f:(fun (a, b) -> printf " (%d, %d)" a b) (List.rev matches)
+    in
+    printf "horiz match start:" ;
+    print_matches horiz_matches ;
+    printf "\nvert match start:" ;
+    print_matches vert_matches ;
+    printf "\nup diag match start:" ;
+    print_matches up_diag_matches ;
+    printf "\ndown diag match start:" ;
+    print_matches down_diag_matches ;
+    print_endline "" ) ;
+  printf "horiz matches: %d\n" horiz_count ;
+  printf "vert matches: %d\n" vert_count ;
+  printf "up diag matches: %d\n" diag_up_count ;
+  printf "down diag matches: %d\n" diag_down_count ;
+  printf "\ntotal count %d\n"
+    (horiz_count + vert_count + diag_up_count + diag_down_count)
+
+let cross_mas_match ?(verbose = false) word_search =
+  let count, matches = scan_cross ~query:"MAS" word_search in
+  if verbose then (
+    let print_matches matches =
+      List.iter ~f:(fun (a, b) -> printf " (%d, %d)" a b) (List.rev matches)
+    in
+    printf "cross match start:" ;
+    print_matches matches ) ;
+  printf "cross matches: %d\n" count
+
 let command =
   Command.basic ~summary:"Word Searcher (AOC-2024-4)"
     [%map_open.Command
-      let file = anon (maybe_with_default "input.txt" ("FILE" %: string))
+      let mode = anon ("MODE" %: string)
+      and file = anon ("FILE" %: string)
       and verbose = flag "verbose" no_arg ~doc:"Enable verbose output." in
       fun () ->
         let word_search = load_word_search file in
-        let horiz_count, horiz_matches = scan_horiz ~query:"XMAS" word_search in
-        let vert_count, vert_matches = scan_vert ~query:"XMAS" word_search in
-        let diag_up_count, up_diag_matches =
-          scan_up_diag ~query:"XMAS" word_search
-        in
-        let diag_down_count, down_diag_matches =
-          scan_down_diag ~query:"XMAS" word_search
-        in
         if verbose then (
           printf "word search:\n" ;
           printf "%s" (to_string word_search) ;
           printf "\tshape: (%d, %d)\n"
             (Tuple2.get1 word_search.shape)
-            (Tuple2.get2 word_search.shape) ;
-          let print_matches matches =
-            List.iter
-              ~f:(fun (a, b) -> printf " (%d, %d)" a b)
-              (List.rev matches)
-          in
-          printf "horiz match start:" ;
-          print_matches horiz_matches ;
-          printf "\nvert match start:" ;
-          print_matches vert_matches ;
-          printf "\nup diag match start:" ;
-          print_matches up_diag_matches ;
-          printf "\ndown diag match start:" ;
-          print_matches down_diag_matches ;
-          print_endline "" ) ;
-        printf "horiz matches: %d\n" horiz_count ;
-        printf "vert matches: %d\n" vert_count ;
-        printf "up diag matches: %d\n" diag_up_count ;
-        printf "down diag matches: %d\n" diag_down_count ;
-        printf "\ntotal count %d\n"
-          (horiz_count + vert_count + diag_up_count + diag_down_count)]
+            (Tuple2.get2 word_search.shape) ) ;
+        match String.lowercase__stack mode with
+        | "xmas" ->
+            xmas_match ~verbose word_search
+        | "x-mas" ->
+            cross_mas_match ~verbose word_search
+        | _ ->
+            failwith ("uknown mode " ^ mode)]
 
 let () = Command_unix.run command
