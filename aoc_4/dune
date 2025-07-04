@@ -1,0 +1,14 @@
+(executables
+ (modes exe)
+ (names aoc_4)
+ (flags
+  (:standard -extension-universe beta))
+ (libraries
+  core_unix.command_unix
+  core
+  core_unix
+  portable
+  core_unix.time_stamp_counter
+  unboxed)
+ (preprocess
+  (pps ppx_jane)))
